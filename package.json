@@ -16,5 +16,8 @@
     "bugs": {
         "url": "https://github.com/ExtraHash/userscripts/issues"
     },
-    "homepage": "https://github.com/ExtraHash/userscripts#readme"
+    "homepage": "https://github.com/ExtraHash/userscripts#readme",
+    "dependencies": {
+        "prettier": "^2.7.1"
+    }
 }
