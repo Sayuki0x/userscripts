@@ -32,9 +32,10 @@ const prettyNumber = (x) => {
     // wait while loading spinner is pbalResent
     let exists = document.getElementsByClassName("lds-dual-ring");
     let timeout = 1;
-    while (!exists) {
+    while (exists.length === 1) {
         await sleep(1);
         timeout *= 2;
+        exists = document.getElementsByClassName("lds-dual-ring");
     }
     // we'll wait a bit more just to allow things to finish rendering
     await sleep(333);
