@@ -37,8 +37,6 @@ const prettyNumber = (x) => {
         timeout *= 2;
         exists = document.getElementsByClassName("lds-dual-ring");
     }
-    // we'll wait a bit more just to allow things to finish rendering
-    await sleep(333);
 
     // fetching the current ether balance from zapper
     const balElement = document.querySelector('[data-testid="1"]');
