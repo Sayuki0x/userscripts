@@ -26,8 +26,14 @@ const prettyNumber = (x) => {
     const balRes = await fetch(
         "https://base32.org/api/eth/validator-balance/90016445a797bb81f131146df66e094271f7df43e82603c51180a83c76f283060611967972f327b0b4566097f608dc8d"
     );
-    const { balance, price } = await balRes.json();
+    const { balance } = await balRes.json();
     const rewards = balance - 32;
+
+    // fetch eth price
+    const priceRes = await fetch("https://base32.org/api/eth/price");
+    const priceInfo = await priceRes.json();
+
+    console.log("fetched info", priceInfo);
 
     // wait while loading spinner is pbalResent
     let exists = document.getElementsByClassName("lds-dual-ring");
@@ -53,11 +59,35 @@ const prettyNumber = (x) => {
 
     // add usd balance
     const usdBalSpan = document.createElement("span");
-    usdBalSpan.textContent = `$${prettyNumber(totalBal * price)}`;
+
+    const percentSpan = document.createElement("span");
+
+    const setUsdBal = (priceInfo) => {
+        usdBalSpan.textContent = `$${prettyNumber(totalBal * priceInfo.last)}`;
+    };
+
+    const setPercentSpan = (priceInfo) => {
+        percentSpan.textContent = `${priceInfo.percentage.toFixed(2)}%`;
+        percentSpan.style.color =
+            priceInfo.percentage < 0
+                ? "rgb(236, 140, 212)"
+                : "rgb(57, 255, 185)";
+    };
+
     usdBalSpan.style.fontSize = "medium";
     usdBalSpan.style.marginLeft = "0.77rem";
     usdBalSpan.style.color = TEXT_ALT_COLOR;
+
+    percentSpan.style.fontSize = "small";
+    percentSpan.style.marginLeft = "0.77rem";
+    percentSpan.style.color =
+        priceInfo.percentage < 0 ? "rgb(236, 140, 212)" : "rgb(57, 255, 185)";
+
+    setUsdBal(priceInfo);
+    setPercentSpan(priceInfo);
+
     balElement.appendChild(usdBalSpan);
+    balElement.appendChild(percentSpan);
 
     const links = document.getElementsByTagName("a");
     for (const link of links) {
@@ -73,4 +103,14 @@ const prettyNumber = (x) => {
             }
         }
     }
+
+    const ws = new WebSocket("wss://base32.org/api/eth/price");
+    ws.onopen = () => {
+        console.log("websocket is listening");
+    };
+    ws.onmessage = (msg) => {
+        const priceInfo = JSON.parse(msg.data);
+        setUsdBal(priceInfo);
+        setPercentSpan(priceInfo);
+    };
 })();
