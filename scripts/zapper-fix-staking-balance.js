@@ -27,6 +27,14 @@ const prettyNumber = (x) => {
     const { balance } = await balRes.json();
     const rewards = balance - 32;
 
+    const unwrapRateRes = await fetch(
+        "https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate"
+    );
+    const unwrapData = await unwrapRateRes.json();
+    const unwrapRate = unwrapData.amount;
+
+    console.log(unwrapRate);
+
     // fetch eth price
     const priceRes = await fetch("https://base32.org/api/eth/price");
     const priceInfo = await priceRes.json();
@@ -53,7 +61,57 @@ const prettyNumber = (x) => {
     console.log("rewards: " + rewards);
 
     // increase relevant balances
-    const totalBal = currentBal + rewards;
+    let totalBal = currentBal + rewards;
+
+    const divs = document.getElementsByTagName("div");
+    for (const div of divs) {
+        if (div?.textContent === "Wallet") {
+            const walletContentsDiv = div.parentElement.parentElement;
+
+            const coins = walletContentsDiv.getElementsByTagName("a");
+            for (const coin of coins) {
+                if (coin.href.includes("stETH")) {
+                    const coinDivs = coin.getElementsByTagName("div");
+                    const coinBalDiv = coinDivs[9];
+                    const coinBal = Number(coinBalDiv.textContent);
+                    const incorrectBal = Number(
+                        coinDivs[8].firstChild.textContent.split(" ").pop()
+                    );
+
+                    coinDivs[8].firstChild.remove();
+
+                    const correctBal = coinBal;
+
+                    const short = correctBal - incorrectBal;
+                    totalBal += short;
+
+                    console.log("stETH: " + short);
+
+                    coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
+                }
+                if (coin.href.includes("cbETH")) {
+                    const coinDivs = coin.getElementsByTagName("div");
+                    const coinBalDiv = coinDivs[9];
+                    const coinBal = Number(coinBalDiv.textContent);
+                    const incorrectBal = Number(
+                        coinDivs[8].firstChild.textContent.split(" ").pop()
+                    );
+
+                    coinDivs[8].firstChild.remove();
+
+                    const correctBal = coinBal * unwrapRate;
+                    const short = correctBal - incorrectBal;
+                    totalBal += short;
+
+                    console.log("cbETH: " + short);
+
+                    coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
+                }
+            }
+
+            break;
+        }
+    }
 
     console.log("total balance: " + totalBal);
 
@@ -117,8 +175,6 @@ const prettyNumber = (x) => {
             break;
         }
     }
-
-    console.log(ethPriceSpan);
 
     const [ethPriceImg] = ethPriceSpan.getElementsByTagName("img");
     ethPriceImg.src = "https://zapper.fi/images/networks/ethereum-icon.png";
