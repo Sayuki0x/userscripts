@@ -9,12 +9,10 @@
 // @grant        none
 // ==/UserScript==
 
-const sleep = async (ms) => new Promise((res, rej) => setTimeout(res, ms));
+const sleep = async (ms) => new Promise((res) => setTimeout(res, ms));
 
 const prettyNumber = (x) => {
-    return Number(x.toFixed(2))
-        .toString()
-        .replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+    return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 };
 
 (async function () {
@@ -35,6 +33,8 @@ const prettyNumber = (x) => {
 
     console.log("fetched info", priceInfo);
 
+    await sleep(200);
+
     // wait while loading spinner is pbalResent
     let exists = document.getElementsByClassName("lds-dual-ring");
     let timeout = 1;
@@ -43,6 +43,8 @@ const prettyNumber = (x) => {
         timeout *= 2;
         exists = document.getElementsByClassName("lds-dual-ring");
     }
+
+    console.log("loaded");
 
     // fetching the current ether balance from zapper
     const balElement = document.querySelector('[data-testid="1"]');
@@ -59,7 +61,6 @@ const prettyNumber = (x) => {
 
     // add usd balance
     const usdBalSpan = document.createElement("span");
-
     const percentSpan = document.createElement("span");
 
     const setUsdBal = (priceInfo) => {
@@ -75,11 +76,14 @@ const prettyNumber = (x) => {
     };
 
     usdBalSpan.style.fontSize = "medium";
-    usdBalSpan.style.marginLeft = "0.77rem";
     usdBalSpan.style.color = TEXT_ALT_COLOR;
+    usdBalSpan.style.float = "right";
+    usdBalSpan.style.marginTop = "7px";
+    usdBalSpan.style.marginRight = "10px";
 
     percentSpan.style.fontSize = "small";
     percentSpan.style.marginLeft = "0.77rem";
+    percentSpan.style.marginTop = "2.5px";
     percentSpan.style.color =
         priceInfo.percentage < 0 ? "rgb(236, 140, 212)" : "rgb(57, 255, 185)";
 
@@ -87,7 +91,6 @@ const prettyNumber = (x) => {
     setPercentSpan(priceInfo);
 
     balElement.appendChild(usdBalSpan);
-    balElement.appendChild(percentSpan);
 
     const links = document.getElementsByTagName("a");
     for (const link of links) {
@@ -104,6 +107,31 @@ const prettyNumber = (x) => {
         }
     }
 
+    let ethPriceSpan = document.createElement("span");
+
+    for (const link of links) {
+        if (link.href.includes("/dashboard")) {
+            const newLink = link.cloneNode(true);
+            ethPriceSpan.appendChild(newLink);
+            link.parentElement.prepend(ethPriceSpan);
+            break;
+        }
+    }
+
+    console.log(ethPriceSpan);
+
+    const [ethPriceImg] = ethPriceSpan.getElementsByTagName("img");
+    ethPriceImg.src = "https://zapper.fi/images/networks/ethereum-icon.png";
+
+    const [ethPriceTextSpan] = ethPriceSpan.getElementsByTagName("span");
+    ethPriceTextSpan.parentElement.appendChild(percentSpan);
+    ethPriceTextSpan.style.color = "#FFF";
+    ethPriceTextSpan.textContent = `$${prettyNumber(priceInfo.last)}`;
+
+    const setPriceText = (priceInfo) => {
+        ethPriceTextSpan.textContent = `$${prettyNumber(priceInfo.last)}`;
+    };
+
     const ws = new WebSocket("wss://base32.org/api/eth/price");
     ws.onopen = () => {
         console.log("websocket is listening");
@@ -112,5 +140,6 @@ const prettyNumber = (x) => {
         const priceInfo = JSON.parse(msg.data);
         setUsdBal(priceInfo);
         setPercentSpan(priceInfo);
+        setPriceText(priceInfo);
     };
 })();
