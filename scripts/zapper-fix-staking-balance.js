@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Zapper - Fix Staking Balance
+// @name         Zapper++
 // @namespace    https://base32.org/
 // @version      0.1
 // @description  Fetches validator rewards from custom API and adds them to your zapper balance
@@ -9,14 +9,112 @@
 // @grant        none
 // ==/UserScript==
 
+const BACKGROUND_ALT_COLOR = "#202a30";
+const TEXT_ALT_COLOR = "#c7d2da";
+
+let totalBal = 0;
+
+async function main() {
+    addPriceSpanToHeader();
+    modifyBalances();
+    listenToSocket();
+}
+
+async function listenToSocket() {
+    const ws = new WebSocket("wss://base32.org/api/eth/price");
+    ws.onopen = () => {
+        console.log("websocket is listening");
+    };
+    ws.onmessage = (msg) => {
+        const priceInfo = JSON.parse(msg.data);
+        console.log(priceInfo);
+        updateEthPrice(priceInfo);
+        setUsdBal(priceInfo);
+    };
+}
+
+function prettyNumber(x) {
+    return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function setUsdBal(priceInfo) {
+    const usdBal = document.getElementById("usd-bal-span");
+
+    if (!usdBal) {
+        return;
+    }
+
+    usdBal.textContent = `$${prettyNumber(totalBal * priceInfo.last)}`;
+}
+
+async function getEthPrice() {
+    // fetch eth price
+    const priceRes = await fetch("https://base32.org/api/eth/price");
+    return priceRes.json();
+}
+
+async function addPriceSpanToHeader() {
+    const ethPrice = await getEthPrice();
+    const links = document.getElementsByTagName("a");
+    for (const link of links) {
+        if (link.href.includes("/dashboard")) {
+            const newLink = link.cloneNode(true);
+            newLink.id = "eth-header-price-wrapper";
+            newLink.firstChild.style.backgroundColor = BACKGROUND_ALT_COLOR;
+
+            // set text and styling
+            const [ethPriceTextSpan] = newLink.getElementsByTagName("span");
+            ethPriceTextSpan.id = "eth-header-price-text";
+            ethPriceTextSpan.textContent = "";
+            ethPriceTextSpan.style.color = "#FFF";
+
+            // set image
+            const [img] = newLink.getElementsByTagName("img");
+            img.src = "https://zapper.fi/images/networks/ethereum-icon.png";
+
+            const percentSpan = document.createElement("span");
+            percentSpan.id = "eth-24h-price-change";
+            percentSpan.style.fontSize = "small";
+            percentSpan.style.marginLeft = "0.77rem";
+            percentSpan.style.marginTop = "2.5px";
+
+            percentSpan.style.color =
+                ethPrice.percentage < 0
+                    ? "rgb(236, 140, 212)"
+                    : "rgb(57, 255, 185)";
+            percentSpan.textContent = `${ethPrice.percentage.toFixed(2)}%`;
+            ethPriceTextSpan.parentElement.appendChild(percentSpan);
+            link.parentElement.prepend(newLink);
+            break;
+        }
+    }
+
+    updateEthPrice(ethPrice);
+}
+
+async function updateEthPrice(priceInfo) {
+    const ethPriceText = document.getElementById("eth-header-price-text");
+    if (!ethPriceText) {
+        return;
+    }
+    ethPriceText.textContent = `$${prettyNumber(priceInfo.last)}`;
+    const percentSpan = document.getElementById("eth-24h-price-change");
+    if (!percentSpan) {
+        return;
+    }
+    percentSpan.textContent = `${priceInfo.percentage.toFixed(2)}%`;
+    percentSpan.style.color =
+        priceInfo.percentage < 0 ? "rgb(236, 140, 212)" : "rgb(57, 255, 185)";
+}
+
 const sleep = async (ms) => new Promise((res) => setTimeout(res, ms));
 
-const prettyNumber = (x) => {
-    return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
-};
-
-(async function () {
+async function modifyBalances() {
     "use strict";
+
+    if (!location.href.includes("sayuki0x")) {
+        return;
+    }
 
     const TEXT_ALT_COLOR = "#c7d2da";
 
@@ -61,7 +159,7 @@ const prettyNumber = (x) => {
     console.log("rewards: " + rewards);
 
     // increase relevant balances
-    let totalBal = currentBal + rewards;
+    totalBal = currentBal + rewards;
 
     const divs = document.getElementsByTagName("div");
     for (const div of divs) {
@@ -77,16 +175,11 @@ const prettyNumber = (x) => {
                     const incorrectBal = Number(
                         coinDivs[8].firstChild.textContent.split(" ").pop()
                     );
-
                     coinDivs[8].firstChild.remove();
-
                     const correctBal = coinBal;
-
                     const short = correctBal - incorrectBal;
                     totalBal += short;
-
                     console.log("stETH: " + short);
-
                     coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
                 }
                 if (coin.href.includes("cbETH")) {
@@ -96,59 +189,33 @@ const prettyNumber = (x) => {
                     const incorrectBal = Number(
                         coinDivs[8].firstChild.textContent.split(" ").pop()
                     );
-
                     coinDivs[8].firstChild.remove();
-
                     const correctBal = coinBal * unwrapRate;
                     const short = correctBal - incorrectBal;
                     totalBal += short;
-
                     console.log("cbETH: " + short);
-
                     coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
                 }
             }
-
             break;
         }
     }
 
     console.log("total balance: " + totalBal);
-
     balElement.textContent = `Ξ ${prettyNumber(totalBal)}`;
 
     // add usd balance
     const usdBalSpan = document.createElement("span");
-    const percentSpan = document.createElement("span");
 
-    const setUsdBal = (priceInfo) => {
-        usdBalSpan.textContent = `$${prettyNumber(totalBal * priceInfo.last)}`;
-    };
-
-    const setPercentSpan = (priceInfo) => {
-        percentSpan.textContent = `${priceInfo.percentage.toFixed(2)}%`;
-        percentSpan.style.color =
-            priceInfo.percentage < 0
-                ? "rgb(236, 140, 212)"
-                : "rgb(57, 255, 185)";
-    };
-
+    usdBalSpan.id = "usd-bal-span";
     usdBalSpan.style.fontSize = "medium";
     usdBalSpan.style.color = TEXT_ALT_COLOR;
     usdBalSpan.style.float = "right";
     usdBalSpan.style.marginTop = "7px";
     usdBalSpan.style.marginRight = "10px";
 
-    percentSpan.style.fontSize = "small";
-    percentSpan.style.marginLeft = "0.77rem";
-    percentSpan.style.marginTop = "2.5px";
-    percentSpan.style.color =
-        priceInfo.percentage < 0 ? "rgb(236, 140, 212)" : "rgb(57, 255, 185)";
-
-    setUsdBal(priceInfo);
-    setPercentSpan(priceInfo);
-
     balElement.appendChild(usdBalSpan);
+    setUsdBal(priceInfo);
 
     const links = document.getElementsByTagName("a");
     for (const link of links) {
@@ -164,38 +231,6 @@ const prettyNumber = (x) => {
             }
         }
     }
+}
 
-    let ethPriceSpan = document.createElement("span");
-
-    for (const link of links) {
-        if (link.href.includes("/dashboard")) {
-            const newLink = link.cloneNode(true);
-            ethPriceSpan.appendChild(newLink);
-            link.parentElement.prepend(ethPriceSpan);
-            break;
-        }
-    }
-
-    const [ethPriceImg] = ethPriceSpan.getElementsByTagName("img");
-    ethPriceImg.src = "https://zapper.fi/images/networks/ethereum-icon.png";
-
-    const [ethPriceTextSpan] = ethPriceSpan.getElementsByTagName("span");
-    ethPriceTextSpan.parentElement.appendChild(percentSpan);
-    ethPriceTextSpan.style.color = "#FFF";
-    ethPriceTextSpan.textContent = `$${prettyNumber(priceInfo.last)}`;
-
-    const setPriceText = (priceInfo) => {
-        ethPriceTextSpan.textContent = `$${prettyNumber(priceInfo.last)}`;
-    };
-
-    const ws = new WebSocket("wss://base32.org/api/eth/price");
-    ws.onopen = () => {
-        console.log("websocket is listening");
-    };
-    ws.onmessage = (msg) => {
-        const priceInfo = JSON.parse(msg.data);
-        setUsdBal(priceInfo);
-        setPercentSpan(priceInfo);
-        setPriceText(priceInfo);
-    };
-})();
+main();
