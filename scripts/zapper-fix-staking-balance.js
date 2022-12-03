@@ -17,8 +17,6 @@ async function main() {
     listenToSocket();
 }
 
-listento
-
 async function listenToSocket() {
     const ws = new WebSocket("wss://base32.org/api/eth/price");
     ws.onopen = () => {
