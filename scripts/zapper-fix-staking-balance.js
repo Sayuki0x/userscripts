@@ -9,9 +9,6 @@
 // @grant        none
 // ==/UserScript==
 
-const BACKGROUND_ALT_COLOR = "#202a30";
-const TEXT_ALT_COLOR = "#c7d2da";
-
 let totalBal = 0;
 
 async function main() {
@@ -19,6 +16,8 @@ async function main() {
     modifyBalances();
     listenToSocket();
 }
+
+listento
 
 async function listenToSocket() {
     const ws = new WebSocket("wss://base32.org/api/eth/price");
@@ -32,6 +31,7 @@ async function listenToSocket() {
         setUsdBal(priceInfo);
     };
 }
+
 
 function prettyNumber(x) {
     return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
@@ -60,14 +60,11 @@ async function addPriceSpanToHeader() {
         if (link.href.includes("/dashboard")) {
             const newLink = link.cloneNode(true);
             newLink.id = "eth-header-price-wrapper";
-            newLink.firstChild.style.backgroundColor = BACKGROUND_ALT_COLOR;
 
             // set text and styling
             const [ethPriceTextSpan] = newLink.getElementsByTagName("span");
             ethPriceTextSpan.id = "eth-header-price-text";
             ethPriceTextSpan.textContent = "";
-            ethPriceTextSpan.style.color = "#FFF";
-
             // set image
             const [img] = newLink.getElementsByTagName("img");
             img.src = "https://zapper.fi/images/networks/ethereum-icon.png";
@@ -115,8 +112,6 @@ async function modifyBalances() {
     if (!location.href.includes("sayuki0x")) {
         return;
     }
-
-    const TEXT_ALT_COLOR = "#c7d2da";
 
     // fetch validator balance from custom api
     const balRes = await fetch(
@@ -209,7 +204,6 @@ async function modifyBalances() {
 
     usdBalSpan.id = "usd-bal-span";
     usdBalSpan.style.fontSize = "medium";
-    usdBalSpan.style.color = TEXT_ALT_COLOR;
     usdBalSpan.style.float = "right";
     usdBalSpan.style.marginTop = "7px";
     usdBalSpan.style.marginRight = "10px";
