@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  Fetches validator rewards from custom API and adds them to your zapper balance
 // @author       ExtraHash
-// @match        https://zapper.fi/dashboard
+// @include        https://zapper.fi*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zapper.fi
 // @grant        none
 // ==/UserScript==
@@ -29,7 +29,6 @@ async function listenToSocket() {
         setUsdBal(priceInfo);
     };
 }
-
 
 function prettyNumber(x) {
     return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
