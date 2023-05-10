@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  Fetches validator rewards from custom API and adds them to your zapper balance
 // @author       ExtraHash
-// @include        https://zapper.fi*
+// @invlude        https://zapper.fi*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zapper.fi
 // @grant        none
 // ==/UserScript==
@@ -104,27 +104,6 @@ async function updateEthPrice(priceInfo) {
 const sleep = async (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function modifyBalances() {
-    "use strict";
-
-    if (!location.href.includes("sayuki0x")) {
-        return;
-    }
-
-    // fetch validator balance from custom api
-    const balRes = await fetch(
-        "https://base32.org/api/eth/validator-balance/90016445a797bb81f131146df66e094271f7df43e82603c51180a83c76f283060611967972f327b0b4566097f608dc8d"
-    );
-    const { balance } = await balRes.json();
-    const rewards = balance - 32;
-
-    const unwrapRateRes = await fetch(
-        "https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate"
-    );
-    const unwrapData = await unwrapRateRes.json();
-    const unwrapRate = unwrapData.amount;
-
-    console.log(unwrapRate);
-
     // fetch eth price
     const priceRes = await fetch("https://base32.org/api/eth/price");
     const priceInfo = await priceRes.json();
@@ -147,65 +126,26 @@ async function modifyBalances() {
     // fetching the current ether balance from zapper
     const balElement = document.querySelector('[data-testid="1"]');
     const currentBal = Number(balElement.textContent.replace(/[^\d.]/g, ""));
-    console.log("current balance: " + currentBal);
-    console.log("rewards: " + rewards);
+
 
     // increase relevant balances
-    totalBal = currentBal + rewards;
-
-    const divs = document.getElementsByTagName("div");
-    for (const div of divs) {
-        if (div?.textContent === "Wallet") {
-            const walletContentsDiv = div.parentElement.parentElement;
-
-            const coins = walletContentsDiv.getElementsByTagName("a");
-            for (const coin of coins) {
-                if (coin.href.includes("stETH")) {
-                    const coinDivs = coin.getElementsByTagName("div");
-                    const coinBalDiv = coinDivs[9];
-                    const coinBal = Number(coinBalDiv.textContent);
-                    const incorrectBal = Number(
-                        coinDivs[8].firstChild.textContent.split(" ").pop()
-                    );
-                    coinDivs[8].firstChild.remove();
-                    const correctBal = coinBal;
-                    const short = correctBal - incorrectBal;
-                    totalBal += short;
-                    console.log("stETH: " + short);
-                    coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
-                }
-                if (coin.href.includes("cbETH")) {
-                    const coinDivs = coin.getElementsByTagName("div");
-                    const coinBalDiv = coinDivs[9];
-                    const coinBal = Number(coinBalDiv.textContent);
-                    const incorrectBal = Number(
-                        coinDivs[8].firstChild.textContent.split(" ").pop()
-                    );
-                    coinDivs[8].firstChild.remove();
-                    const correctBal = coinBal * unwrapRate;
-                    const short = correctBal - incorrectBal;
-                    totalBal += short;
-                    console.log("cbETH: " + short);
-                    coinDivs[8].prepend("Ξ " + correctBal.toFixed("2"));
-                }
-            }
-            break;
-        }
-    }
+    totalBal = currentBal;
 
     console.log("total balance: " + totalBal);
-    balElement.textContent = `Ξ ${prettyNumber(totalBal)}`;
+    balElement.textContent = `${prettyNumber(totalBal)} ETH`;
 
     // add usd balance
-    const usdBalSpan = document.createElement("span");
+    const usdBalContainer = document.createElement("div");
 
-    usdBalSpan.id = "usd-bal-span";
-    usdBalSpan.style.fontSize = "medium";
-    usdBalSpan.style.float = "right";
-    usdBalSpan.style.marginTop = "7px";
-    usdBalSpan.style.marginRight = "10px";
+    usdBalContainer.id = "usd-bal-span";
+    usdBalContainer.style.fontSize = "medium";
+    usdBalContainer.style.float = "right";
+    usdBalContainer.style.marginTop = "7px";
+    usdBalContainer.style.marginLeft = "10px";
 
-    balElement.appendChild(usdBalSpan);
+    console.log(balElement, usdBalContainer);
+
+    balElement.appendChild(usdBalContainer);
     setUsdBal(priceInfo);
 
     const links = document.getElementsByTagName("a");
