@@ -12,8 +12,7 @@
 let totalBal = 0;
 
 async function main() {
-    addPriceSpanToHeader();
-    modifyBalances();
+    setBalance();
     listenToSocket();
 }
 
@@ -50,42 +49,6 @@ async function getEthPrice() {
     return priceRes.json();
 }
 
-async function addPriceSpanToHeader() {
-    const ethPrice = await getEthPrice();
-    const links = document.getElementsByTagName("a");
-    for (const link of links) {
-        if (link.href.includes("/dashboard")) {
-            const newLink = link.cloneNode(true);
-            newLink.id = "eth-header-price-wrapper";
-
-            // set text and styling
-            const [ethPriceTextSpan] = newLink.getElementsByTagName("span");
-            ethPriceTextSpan.id = "eth-header-price-text";
-            ethPriceTextSpan.textContent = "";
-            // set image
-            const [img] = newLink.getElementsByTagName("img");
-            img.src = "https://zapper.fi/images/networks/ethereum-icon.png";
-
-            const percentSpan = document.createElement("span");
-            percentSpan.id = "eth-24h-price-change";
-            percentSpan.style.fontSize = "small";
-            percentSpan.style.marginLeft = "0.77rem";
-            percentSpan.style.marginTop = "2.5px";
-
-            percentSpan.style.color =
-                ethPrice.percentage < 0
-                    ? "rgb(236, 140, 212)"
-                    : "rgb(57, 255, 185)";
-            percentSpan.textContent = `${ethPrice.percentage.toFixed(2)}%`;
-            ethPriceTextSpan.parentElement.appendChild(percentSpan);
-            link.parentElement.prepend(newLink);
-            break;
-        }
-    }
-
-    updateEthPrice(ethPrice);
-}
-
 async function updateEthPrice(priceInfo) {
     const ethPriceText = document.getElementById("eth-header-price-text");
     if (!ethPriceText) {
@@ -103,25 +66,24 @@ async function updateEthPrice(priceInfo) {
 
 const sleep = async (ms) => new Promise((res) => setTimeout(res, ms));
 
-async function modifyBalances() {
+async function setBalance() {
     // fetch eth price
     const priceRes = await fetch("https://base32.org/api/eth/price");
     const priceInfo = await priceRes.json();
 
     console.log("fetched info", priceInfo);
 
-    await sleep(200);
-
     // wait while loading spinner is pbalResent
-    let exists = document.getElementsByClassName("lds-dual-ring");
-    let timeout = 1;
-    while (exists.length === 1) {
-        await sleep(1);
-        timeout *= 2;
-        exists = document.getElementsByClassName("lds-dual-ring");
+    let timeout = 10;
+    while(true) {
+        // check if refresh button is present to determine page load
+        if (document.querySelector(`[title="Refresh"]`)) {
+            break;
+        }
+        timeout += 1;
+        await sleep(timeout);
     }
 
-    console.log("loaded");
 
     // fetching the current ether balance from zapper
     const balElement = document.querySelector('[data-testid="1"]');
