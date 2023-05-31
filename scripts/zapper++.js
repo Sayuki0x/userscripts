@@ -71,29 +71,41 @@ async function setBalance() {
     const priceRes = await fetch("https://base32.org/api/eth/price");
     const priceInfo = await priceRes.json();
 
-    console.log("fetched info", priceInfo);
-
     // wait while loading spinner is pbalResent
     let timeout = 10;
-    while(true) {
+    while (true) {
         // check if refresh button is present to determine page load
-        if (document.querySelector(`[title="Refresh"]`)) {
+        const exists =
+            document.querySelector(`[title="Refresh"]`) ||
+            document.querySelector(
+                `[title="Please wait 5 minutes before refreshing again"]`
+            ) ||
+            document.querySelector(
+                `[title="Please wait 4 minutes before refreshing again"]`
+            ) ||
+            document.querySelector(
+                `[title="Please wait 3 minutes before refreshing again"]`
+            ) ||
+            document.querySelector(
+                `[title="Please wait 2 minutes before refreshing again"]`
+            ) ||
+            document.querySelector(
+                `[title="Please wait 1 minutes before refreshing again"]`
+            );
+        if (exists) {
             break;
         }
         timeout += 1;
         await sleep(timeout);
     }
-
+    console.log("page loaded");
 
     // fetching the current ether balance from zapper
     const balElement = document.querySelector('[data-testid="1"]');
     const currentBal = Number(balElement.textContent.replace(/[^\d.]/g, ""));
 
-
     // increase relevant balances
     totalBal = currentBal;
-
-    console.log("total balance: " + totalBal);
     balElement.textContent = `${prettyNumber(totalBal)} ETH`;
 
     // add usd balance
@@ -104,8 +116,6 @@ async function setBalance() {
     usdBalContainer.style.float = "right";
     usdBalContainer.style.marginTop = "7px";
     usdBalContainer.style.marginLeft = "10px";
-
-    console.log(balElement, usdBalContainer);
 
     balElement.appendChild(usdBalContainer);
     setUsdBal(priceInfo);
