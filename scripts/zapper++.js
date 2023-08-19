@@ -24,7 +24,6 @@ async function listenToSocket() {
     ws.onmessage = (msg) => {
         const priceInfo = JSON.parse(msg.data);
         console.log(priceInfo);
-        updateEthPrice(priceInfo);
         setUsdBal(priceInfo);
     };
 }
@@ -32,6 +31,34 @@ async function listenToSocket() {
 function prettyNumber(x) {
     return x.toFixed(2).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 }
+
+async function getEthPrice() {
+    // fetch eth price
+    const priceRes = await fetch("https://base32.org/api/eth/price");
+    return priceRes.json();
+}
+
+function getRefreshButton() {
+    return (
+        document.querySelector(`[title="Refresh"]`) ??
+        document.querySelector(
+            `[title="Please wait 5 minutes before refreshing again"]`
+        ) ??
+        document.querySelector(
+            `[title="Please wait 4 minutes before refreshing again"]`
+        ) ??
+        document.querySelector(
+            `[title="Please wait 3 minutes before refreshing again"]`
+        ) ??
+        document.querySelector(
+            `[title="Please wait 2 minutes before refreshing again"]`
+        ) ??
+        document.querySelector(
+            `[title="Please wait 1 minutes before refreshing again"]`
+        )
+    );
+}
+
 
 function setUsdBal(priceInfo) {
     const usdBal = document.getElementById("usd-bal-span");
@@ -41,27 +68,6 @@ function setUsdBal(priceInfo) {
     }
 
     usdBal.textContent = `$${prettyNumber(totalBal * priceInfo.last)}`;
-}
-
-async function getEthPrice() {
-    // fetch eth price
-    const priceRes = await fetch("https://base32.org/api/eth/price");
-    return priceRes.json();
-}
-
-async function updateEthPrice(priceInfo) {
-    const ethPriceText = document.getElementById("eth-header-price-text");
-    if (!ethPriceText) {
-        return;
-    }
-    ethPriceText.textContent = `$${prettyNumber(priceInfo.last)}`;
-    const percentSpan = document.getElementById("eth-24h-price-change");
-    if (!percentSpan) {
-        return;
-    }
-    percentSpan.textContent = `${priceInfo.percentage.toFixed(2)}%`;
-    percentSpan.style.color =
-        priceInfo.percentage < 0 ? "rgb(236, 140, 212)" : "rgb(57, 255, 185)";
 }
 
 const sleep = async (ms) => new Promise((res) => setTimeout(res, ms));
@@ -75,23 +81,7 @@ async function setBalance() {
     let timeout = 10;
     while (true) {
         // check if refresh button is present to determine page load
-        const exists =
-            document.querySelector(`[title="Refresh"]`) ||
-            document.querySelector(
-                `[title="Please wait 5 minutes before refreshing again"]`
-            ) ||
-            document.querySelector(
-                `[title="Please wait 4 minutes before refreshing again"]`
-            ) ||
-            document.querySelector(
-                `[title="Please wait 3 minutes before refreshing again"]`
-            ) ||
-            document.querySelector(
-                `[title="Please wait 2 minutes before refreshing again"]`
-            ) ||
-            document.querySelector(
-                `[title="Please wait 1 minutes before refreshing again"]`
-            );
+        const exists = getRefreshButton();
         if (exists) {
             break;
         }
@@ -101,39 +91,24 @@ async function setBalance() {
     console.log("page loaded");
 
     // fetching the current ether balance from zapper
-    const balElement = document.querySelector('[data-testid="1"]');
+    const refreshButton = getRefreshButton();
+    const balElement = refreshButton.parentElement;
+
+    console.log(balElement.children);
     const currentBal = Number(balElement.textContent.replace(/[^\d.]/g, ""));
 
     // increase relevant balances
     totalBal = currentBal;
-    balElement.textContent = `${prettyNumber(totalBal)} ETH`;
 
     // add usd balance
     const usdBalContainer = document.createElement("div");
 
     usdBalContainer.id = "usd-bal-span";
-    usdBalContainer.style.fontSize = "medium";
-    usdBalContainer.style.float = "right";
-    usdBalContainer.style.marginTop = "7px";
-    usdBalContainer.style.marginLeft = "10px";
+    usdBalContainer.style.fontSize = "15px";
+    usdBalContainer.style.marginTop = "10px";
 
-    balElement.appendChild(usdBalContainer);
+    balElement.insertBefore(usdBalContainer, refreshButton);
     setUsdBal(priceInfo);
-
-    const links = document.getElementsByTagName("a");
-    for (const link of links) {
-        if (link.href.includes("ethereum-staking")) {
-            // the one we're after has child nodes
-            if (link.hasChildNodes) {
-                const spans = link.getElementsByTagName("span");
-                for (const span of spans) {
-                    if (span.textContent.includes("Ξ")) {
-                        span.textContent = `Ξ ${prettyNumber(balance)}`;
-                    }
-                }
-            }
-        }
-    }
 }
 
 main();
