@@ -78,15 +78,13 @@ async function setBalance() {
     const priceInfo = await priceRes.json();
 
     // wait while loading spinner is pbalResent
-    let timeout = 10;
     while (true) {
         // check if refresh button is present to determine page load
         const exists = getRefreshButton();
         if (exists) {
             break;
         }
-        timeout += 1;
-        await sleep(timeout);
+        await sleep(10);
     }
     console.log("page loaded");
 
