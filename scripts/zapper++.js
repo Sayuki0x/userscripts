@@ -22,7 +22,7 @@ async function main() {
         const { key } = event;
 
         switch(key) {
-            case 'T':
+            case 't':
                 changeDisplayCurrency();
                 break;
         }
