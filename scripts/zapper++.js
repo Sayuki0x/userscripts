@@ -68,10 +68,10 @@ function waitForId(id) {
 
 async function changeDisplayCurrency() {
     // find and click button with id headlessui-popover-button-3
-    const button = document.querySelector(`[id="headlessui-popover-button-5"]`);
+    const button = document.querySelector(`[id="headlessui-popover-button-3"]`);
     button.click();
 
-    const popover = await waitForId("headlessui-popover-panel-6");
+    const popover = await waitForId("headlessui-popover-panel-4");
 
     let popoverImgs = popover.getElementsByTagName("img");
     for (const popoverImg of popoverImgs) {
